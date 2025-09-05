@@ -7,13 +7,19 @@ import psycopg2
 import psycopg2.extras as extras
 from typing import Optional # Optional for Python < 3.10
 
-# ── PostgreSQL connection params (from you) ───────────────────────────────
+from dotenv import load_dotenv
+from pathlib import Path
+import os
+
+# Load .env.alerts file
+load_dotenv(dotenv_path=Path(".env.alerts"), override=True)
+
 DB_PARAMS = {
-    "host":     "nlc-db.c1yckugsel2y.ap-south-1.rds.amazonaws.com",
-    "port":     5432,
-    "dbname":   "VTS",
-    "user":     "postgres",
-    "password": "admin123",
+    "host":     os.environ.get("DB_HOST"),
+    "port":     int(os.environ.get("DB_PORT")),
+    "dbname":   os.environ.get("DB_NAME"),
+    "user":     os.environ.get("DB_USER"),
+    "password": os.environ.get("DB_PASSWORD"),
 }
 
 # ── helpers ───────────────────────────────────────────────────────────────

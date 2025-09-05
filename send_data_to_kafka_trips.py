@@ -17,13 +17,22 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from confluent_kafka import Producer, KafkaException
 
+
+from dotenv import load_dotenv
+from pathlib import Path
+import os
+
+# Load .env.trip file
+load_dotenv(dotenv_path=Path(".env.trip"))
+
+
 # ── Kafka connection ─────────────────────────────────────────────────────
 KAFKA_CONF = {
-    "bootstrap.servers":       "cmcr-q.deliverydevs.com:9091",
-    "security.protocol":       "SASL_PLAINTEXT",
-    "sasl.mechanisms":         "PLAIN",
-    "sasl.username":           "nlc",
-    "sasl.password":           "KDuw41kSeO8INXbT20",
+    "bootstrap.servers":       os.environ.get("KAFKA_BOOTSTRAP_SERVERS"),
+    "security.protocol":       os.environ.get("KAFKA_SECURITY_PROTOCOL"),
+    "sasl.mechanisms":         os.environ.get("KAFKA_SASL_MECHANISMS"),
+    "sasl.username":           os.environ.get("KAFKA_SASL_USERNAME"),
+    "sasl.password":           os.environ.get("KAFKA_SASL_PASSWORD"),
     "enable.idempotence":      True,
     "retries":                 5,
     "retry.backoff.ms":        2000,
@@ -31,22 +40,23 @@ KAFKA_CONF = {
     "acks":                    "all",
 }
 
-DEVICE_LOCATION_TOPIC = "nl_device_location"
-TRIP_DATA_TOPIC       = "nl_trip"
+
+DEVICE_LOCATION_TOPIC = os.getenv("DEVICE_LOCATION_TOPIC", "nl_device_location")
+TRIP_DATA_TOPIC       = os.getenv("TRIP_DATA_TOPIC", "nl_trip")
 
 # ── PostgreSQL connection params ──────────────────────────────────────────
 DB_PARAMS = {
-    "host":     "nlc-db.c1yckugsel2y.ap-south-1.rds.amazonaws.com",
-    "port":     5432,
-    "dbname":   "VTS",
-    "user":     "postgres",
-    "password": "admin123",
+    "host":     os.environ.get("DB_HOST"),
+    "port":     int(os.environ.get("DB_PORT")),
+    "dbname":   os.environ.get("DB_NAME"),
+    "user":     os.environ.get("DB_USER"),
+    "password": os.environ.get("DB_PASSWORD"),
 }
 
 # ── Rolling payload logs (last 1k lines each) ────────────────────────────
-LOG_PATH_DEVICE = Path("payload_log.jsonl")
-LOG_PATH_TRIP   = Path("trip_payload_log.jsonl")
-MAX_LOG_LINES   = 1000
+LOG_PATH_DEVICE = Path(os.environ.get("LOG_PATH_DEVICE", "payload_log.jsonl"))
+LOG_PATH_TRIP   = Path(os.environ.get("LOG_PATH_TRIP", "trip_payload_log.jsonl"))
+MAX_LOG_LINES   = int(os.environ.get("MAX_LOG_LINES", 1000))
 
 def append_to_log(path: Path, line: str):
     path.parent.mkdir(exist_ok=True)
@@ -328,7 +338,7 @@ def main():
     ensure_offset_row(conn)
     ensure_trip_offset_table(conn)
 
-    print("Shipper started → topics", DEVICE_LOCATION_TOPIC, "&", TRIP_DATA_TOPIC, " Ctrl-C to stop")
+    print("Shipper started → topics", TRIP_DATA_TOPIC, " Ctrl-C to stop")
 
     try:
         while True:

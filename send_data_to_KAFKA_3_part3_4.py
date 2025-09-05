@@ -11,14 +11,19 @@ from send_data_to_KAFKA_3_part1_2 import (
     DB_PARAMS, get_conn, iso8601_utc, as_str_latlon, compute_wait_window_until
 )
 
+from dotenv import load_dotenv
+from pathlib import Path
+import os
+
+# Load .env.events file
+load_dotenv(dotenv_path=Path(".env.alerts"), override=True)
 # ───────── Kafka config + single Producer instance ─────────
 KAFKA_CONF = {
-    # "bootstrap.servers":       "202.63.203.62:9091",
-    "bootstrap.servers":       "cmcr-q.deliverydevs.com:9091",
-    "security.protocol":       "SASL_PLAINTEXT",
-    "sasl.mechanisms":         "PLAIN",
-    "sasl.username":           "nlc",
-    "sasl.password":           "KDuw41kSeO8INXbT20",
+    "bootstrap.servers":       os.environ.get("KAFKA_BOOTSTRAP_SERVERS"),
+    "security.protocol":       os.environ.get("KAFKA_SECURITY_PROTOCOL"),
+    "sasl.mechanisms":         os.environ.get("KAFKA_SASL_MECHANISMS"),
+    "sasl.username":           os.environ.get("KAFKA_SASL_USERNAME"),
+    "sasl.password":           os.environ.get("KAFKA_SASL_PASSWORD"),
     "enable.idempotence":      True,
     "acks":                    "all",
     # quiet the warning you saw:
@@ -26,7 +31,9 @@ KAFKA_CONF = {
     "retry.backoff.max.ms":    2000,
     "socket.keepalive.enable": True,
 }
-ALERTS_TOPIC = "nl_alerts"
+# ALERTS_TOPIC = "nl_alerts"
+ALERTS_TOPIC = os.getenv("EVENT_DATA_TOPIC", "nl_alerts")
+
 # ALERTS_TOPIC = "nl_Alerts_Data"
 
 try:
@@ -72,10 +79,16 @@ def _flush_producer(timeout_sec: float = 3.0):
         pass
 
 # ───────── Local JSONL debug ─────────
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-KAFKA_LOG_PATH = os.path.join(BASE_DIR, "kafka_logs.jsonl")
+# Load KAFKA_LOG_PATH from .env, fallback to default if not set
+KAFKA_LOG_PATH = os.getenv("KAFKA_LOG_PATH")
+if not KAFKA_LOG_PATH:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    KAFKA_LOG_PATH = os.path.join(BASE_DIR, "kafka_logs.jsonl")
 
-MAX_LOG_LINES = 10000
+
+MAX_LOG_LINES = os.getenv("MAX_LOG_LINES")
+if MAX_LOG_LINES is None:
+    MAX_LOG_LINES = 10000
 
 # def append_kafka_log(key: str, payload: dict, payload_hash: str, sent_ok: bool, error: str | None):
 # it will run on even if python < 3.10
